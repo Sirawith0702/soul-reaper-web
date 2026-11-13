@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Soul Reaper Web — Phase 5 (World Boss + SFX + Visual Upgrade)</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #08081a 0%, #000005 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      color: #e0f0ff;
+    }
+
+    #title-bar {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 10px;
+      margin-bottom: 4px;
+      gap: 8px;
+    }
+
+    .title-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: #66b2ff;
+      letter-spacing: 2px;
+      text-shadow: 0 0 12px rgba(0, 140, 255, 0.5);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .top-btn {
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(90deg, #1b3664, #28559a);
+      border: 1px solid #4d88dd;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.15s;
+    }
+
+    .top-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(0, 170, 255, 0.5);
+    }
+
+    .top-btn.gold {
+      background: linear-gradient(90deg, #885500, #cc8800);
+      border-color: #ffcc44;
+      color: #fff8dd;
+    }
+
+    .top-btn.muted {
+      background: #2a1822;
+      border-color: #aa4455;
+      color: #ff99aa;
+    }
+
+    .phase-badge {
+      font-size: 11px;
+      color: #88ccff;
+      background: #06152d;
+      border: 1px solid #1c4b82;
+      padding: 3px 10px;
+      border-radius: 12px;
+      letter-spacing: 1px;
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 900px;
+      height: 500px;
+      max-width: 100vw;
+      max-height: calc(100vh - 38px);
+      border: 2px solid #1e2952;
+      box-shadow:
+        0 0 35px rgba(0, 140, 255, 0.28),
+        0 0 70px rgba(80, 0, 180, 0.15),
+        inset 0 0 30px rgba(0, 0, 0, 0.6);
+      background: #000010;
+      overflow: hidden;
+    }
+
+    #game-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── WORLD BOSS HP BAR & WARNING BANNER ──────────────────── */
+    #boss-hud {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 440px;
+      max-width: 60%;
+      z-index: 22;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    #boss-hud.active {
+      display: flex;
+    }
+
+    .boss-name {
+      font-size: 12px;
+      font-weight: 900;
+      color: #ff4466;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #ff0033, 0 1px 3px #000;
+      margin-bottom: 3px;
+    }
+
+    .boss-bar-outer {
+      width: 100%;
+      height: 14px;
+      background: rgba(10, 0, 15, 0.9);
+      border: 2px solid #aa1144;
+      border-radius: 7px;
+      overflow: hidden;
+      box-shadow: 0 0 16px rgba(255, 0, 60, 0.5);
+      position: relative;
+    }
+
+    #boss-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #880022, #ff1144, #ff6688);
+      transition: width 0.12s ease-out;
+    }
+
+    #boss-hp-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 1px 2px #000;
+    }
+
+    #boss-warning-banner {
+      position: absolute;
+      top: 36%;
+      left: 0;
+      width: 100%;
+      padding: 14px 0;
+      background: linear-gradient(90deg, rgba(80,0,0,0) 0%, rgba(160,0,20,0.9) 20%, rgba(200,0,30,0.95) 50%, rgba(160,0,20,0.9) 80%, rgba(80,0,0,0) 100%);
+      border-top: 2px solid #ff4455;
+      border-bottom: 2px solid #ff4455;
+      text-align: center;
+      z-index: 45;
+      display: none;
+      pointer-events: none;
+      animation: warnBlink 0.45s ease-in-out infinite alternate;
+    }
+
+    @keyframes warnBlink {
+      from { opacity: 0.65; transform: scaleY(0.96); }
+      to   { opacity: 1;    transform: scaleY(1.03); }
+    }
+
+    .warn-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 3px;
+      text-shadow: 0 0 16px #ff0000, 0 2px 4px #000;
+    }
+
+    .warn-sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffcccc;
+      margin-top: 3px;
+      letter-spacing: 1px;
+    }
+
+    /* ── LOBBY OVERLAY ───────────────────────────────────────── */
+    #lobby-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 35%, rgba(12, 18, 48, 0.95) 0%, rgba(2, 2, 12, 0.99) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 60;
+      backdrop-filter: blur(6px);
+      transition: opacity 0.4s ease;
+    }
+
+    #lobby-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .lobby-card {
+      width: 410px;
+      max-width: 94vw;
+      background: rgba(8, 12, 30, 0.94);
+      border: 1px solid rgba(0, 160, 255, 0.35);
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow:
+        0 0 40px rgba(0, 110, 255, 0.25),
+        inset 0 0 20px rgba(0, 80, 200, 0.1);
+      text-align: center;
+    }
+
+    .lobby-kanji {
+      font-size: 34px;
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 0 18px #0088ff, 0 0 36px #0044ff;
+      letter-spacing: 6px;
+      line-height: 1;
+    }
+
+    .lobby-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #88ccff;
+      letter-spacing: 3px;
+      margin-top: 4px;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+
+    .lobby-sub {
+      font-size: 11px;
+      color: #6688aa;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 11px;
+      flex: 1;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: #99bbdd;
+      margin-bottom: 4px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px 10px;
+      background: #050918;
+      border: 1px solid #223b66;
+      border-radius: 6px;
+      color: #ffffff;
+      font-size: 13px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .form-group input:focus {
+      border-color: #00aaff;
+      box-shadow: 0 0 10px rgba(0, 170, 255, 0.35);
+    }
+
+    .color-options {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .color-swatch {
+      flex: 1;
+      height: 30px;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .color-swatch.selected {
+      border-color: #ffffff;
+      box-shadow: 0 0 12px currentColor;
+      transform: scale(1.05);
+    }
+
+    #auth-error {
+      font-size: 11px;
+      color: #ff5566;
+      min-height: 16px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    #join-btn {
+      width: 100%;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #ffffff;
+      background: linear-gradient(90deg, #0055cc, #0099ff);
+      border: 1px solid #66ccff;
+      border-radius: 7px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 140, 255, 0.45);
+    }
+
+    #join-btn:hover {
+      background: linear-gradient(90deg, #0066ee, #22bbff);
+    }
+
+    /* ── SHOP / GACHA / INVENTORY / REDEEM MODAL ─────────────── */
+    #shop-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 4, 14, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 55;
+    }
+
+    #shop-modal.open {
+      display: flex;
+    }
+
+    .shop-card {
+      width: 570px;
+      max-width: 95vw;
+      height: 415px;
+      max-height: 92%;
+      background: #080d22;
+      border: 1px solid #2a4d88;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0, 120, 255, 0.35);
+    }
+
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: #0d1636;
+      border-bottom: 1px solid #1e3566;
+    }
+
+    .shop-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #ffd166;
+      letter-spacing: 1px;
+    }
+
+    .shop-coins {
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffdd44;
+      background: rgba(255, 180, 0, 0.12);
+      border: 1px solid rgba(255, 200, 0, 0.4);
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+
+    .shop-tickets {
+      font-size: 11px;
+      font-weight: 700;
+      color: #66ffcc;
+      background: rgba(0, 220, 150, 0.12);
+      border: 1px solid rgba(50, 255, 180, 0.4);
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+
+    .close-shop-btn {
+      background: transparent;
+      border: 1px solid #446699;
+      color: #aaccee;
+      border-radius: 6px;
+      padding: 3px 9px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .shop-tabs {
+      display: flex;
+      background: #060a1a;
+      border-bottom: 1px solid #1c2e55;
+    }
+
+    .shop-tab {
+      flex: 1;
+      padding: 9px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #7799bb;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .shop-tab.active {
+      color: #ffffff;
+      background: #0e1838;
+      border-bottom-color: #00aaff;
+    }
+
+    .shop-body {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .tab-pane {
+      display: none;
+      height: 100%;
+    }
+
+    .tab-pane.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gacha-banner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #141e46 0%, #070b1c 100%);
+      border: 1px solid #28427a;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .gacha-rates {
+      font-size: 11px;
+      color: #88aacc;
+      margin: 6px 0 12px;
+    }
+
+    #gacha-result-box {
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px dashed #2b4470;
+      width: 90%;
+    }
+
+    @keyframes pulsePop {
+      0%   { transform: scale(0.75); opacity: 0.3; }
+      60%  { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    .gacha-pop {
+      animation: pulsePop 0.4s ease forwards;
+    }
+
+    #roll-gacha-btn {
+      padding: 11px 26px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #1a1000;
+      background: linear-gradient(90deg, #ffaa00, #ffdd44);
+      border: 1px solid #ffee88;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255, 190, 0, 0.45);
+    }
+
+    #roll-gacha-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 28px rgba(255, 210, 50, 0.75);
+    }
+
+    .inv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .sword-item {
+      background: #0d1530;
+      border: 1px solid #223866;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sword-item.equipped {
+      border-color: #00ccff;
+      background: #102248;
+      box-shadow: 0 0 12px rgba(0, 170, 255, 0.25);
+    }
+
+    .sword-info h4 {
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .sword-info p {
+      font-size: 11px;
+      color: #88aacc;
+    }
+
+    .equip-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid #3366aa;
+      background: #163060;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    .equip-btn.active {
+      background: #116633;
+      border-color: #33cc66;
+      cursor: default;
+    }
+
+    .redeem-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .redeem-input-row {
+      display: flex;
+      gap: 8px;
+      width: 80%;
+    }
+
+    #redeem-input {
+      flex: 1;
+      padding: 9px 12px;
+      background: #050918;
+      border: 1px solid #2c4a80;
+      border-radius: 6px;
+      color: #ffffff;
+      font-size: 14px;
+      text-transform: uppercase;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    #redeem-btn {
+      padding: 9px 18px;
+      background: linear-gradient(90deg, #118844, #22bb66);
+      border: 1px solid #66ffaa;
+      color: #fff;
+      font-weight: 800;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* ── ONLINE PLAYERS LIST (Top-Right) ─────────────────────── */
+    #online-panel {
+      position: absolute;
+      top: 32px;
+      right: 10px;
+      width: 175px;
+      background: rgba(4, 8, 22, 0.72);
+      border: 1px solid rgba(50, 100, 170, 0.45);
+      border-radius: 6px;
+      padding: 7px 10px;
+      z-index: 20;
+      pointer-events: none;
+      display: none;
+    }
+
+    .online-header {
+      font-size: 10px;
+      font-weight: 800;
+      color: #88ccff;
+      letter-spacing: 1px;
+      border-bottom: 1px solid rgba(80, 140, 220, 0.25);
+      padding-bottom: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #online-list {
+      list-style: none;
+      max-height: 95px;
+      overflow: hidden;
+    }
+
+    #online-list li {
+      font-size: 11px;
+      color: #ddeeff;
+      padding: 2px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── QUICK CHAT BOX ──────────────────────────────────────── */
+    #chat-box {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      width: 265px;
+      z-index: 25;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #chat-messages {
+      height: 88px;
+      overflow-y: auto;
+      background: rgba(2, 6, 18, 0.52);
+      border: 1px solid rgba(40, 80, 140, 0.35);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      pointer-events: auto;
+      scrollbar-width: thin;
+    }
+
+    .chat-line {
+      line-height: 1.3;
+      word-break: break-word;
+      text-shadow: 0 1px 2px #000;
+    }
+
+    .chat-line.system {
+      color: #ffd166;
+      font-style: italic;
+    }
+
+    #chat-input-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(4, 10, 28, 0.85);
+      border: 1px solid rgba(60, 120, 200, 0.5);
+      border-radius: 5px;
+      padding: 4px 8px;
+    }
+
+    #chat-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 11px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    /* ── VIRTUAL MOBILE TOUCH CONTROLS ───────────────────────── */
+    #touch-controls {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 30;
+      display: none;
+    }
+
+    #touch-controls.visible {
+      display: block;
+    }
+
+    .touch-cluster-left {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      pointer-events: auto;
+    }
+
+    .touch-cluster-right {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, 58px);
+      grid-template-rows: repeat(2, 54px);
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .v-btn {
+      width: 58px;
+      height: 54px;
+      border-radius: 50%;
+      background: rgba(15, 30, 65, 0.52);
+      border: 2px solid rgba(100, 180, 255, 0.55);
+      color: #e6f4ff;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      touch-action: none;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .v-btn:active, .v-btn.pressed {
+      background: rgba(0, 150, 255, 0.65);
+      border-color: #ffffff;
+      transform: scale(0.94);
+    }
+
+    .v-btn.atk {
+      background: rgba(180, 40, 40, 0.55);
+      border-color: rgba(255, 120, 100, 0.7);
+    }
+
+    .v-btn.ult {
+      background: rgba(160, 90, 0, 0.6);
+      border-color: rgba(255, 200, 60, 0.8);
+      color: #ffeeaa;
+    }
+
+    #game-wrapper.touch-active #chat-box {
+      bottom: 80px;
+      width: 230px;
+    }
+  </style>
+</head>
+<body>
+  <div id="title-bar">
+    <span class="title-text">⚔ SOUL REAPER ONLINE</span>
+    <div class="top-actions">
+      <button class="top-btn gold" id="open-shop-btn" style="display:none;">🛒 ร้านค้า &amp; กาชา</button>
+      <button class="top-btn" id="toggle-sound-btn">🔊 เสียง: เปิด</button>
+      <button class="top-btn" id="toggle-touch-btn" style="display:none;">📱 ปุ่มมือถือ</button>
+      <span class="phase-badge" id="room-badge">PHASE 5 — WORLD BOSS &amp; SFX</span>
+    </div>
+  </div>
+
+  <div id="game-wrapper">
+    <div id="game-container"></div>
+
+    <!-- ── WORLD BOSS HP BAR ── -->
+    <div id="boss-hud">
+      <div class="boss-name" id="boss-name-label">☠ OVERLORD HOLLOW — VASTO EMPEROR ☠</div>
+      <div class="boss-bar-outer">
+        <div id="boss-bar-fill"></div>
+        <div id="boss-hp-text">2200 / 2200</div>
+      </div>
+    </div>
+
+    <!-- ── WORLD BOSS WARNING BANNER ── -->
+    <div id="boss-warning-banner">
+      <div class="warn-title" id="warn-title-text">⚠ WARNING: OVERLORD HOLLOW APPEARED! ⚠</div>
+      <div class="warn-sub" id="warn-sub-text">จักรพรรดิฮอลโลว์ปรากฏตัว! ระวังลำแสง Cero Beam!</div>
+    </div>
+
+    <!-- ── LOBBY OVERLAY ── -->
+    <div id="lobby-overlay">
+      <div class="lobby-card">
+        <div class="lobby-kanji">魂 切</div>
+        <div class="lobby-title">Soul Reaper Online</div>
+        <div class="lobby-sub">World Boss Raid · Web Audio SFX · Soul Blade Gacha</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="player-name">ชื่อผู้ใช้ (Username)</label>
+            <input type="text" id="player-name" maxlength="16" placeholder="เช่น Ichigo" value="Ichigo" />
+          </div>
+          <div class="form-group" style="max-width: 135px;">
+            <label for="player-pin">รหัส PIN (4 หลัก)</label>
+            <input type="password" id="player-pin" maxlength="4" inputmode="numeric" placeholder="1234" value="1234" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="room-id">รหัสห้อง (Room ID)</label>
+          <input type="text" id="room-id" maxlength="20" placeholder="เช่น room1" value="room1" />
+        </div>
+
+        <div class="form-group">
+          <label>สีผ้าพันคอ / ออร่าวิญญาณ (Soul Aura)</label>
+          <div class="color-options" id="color-picker">
+            <div class="color-swatch selected" data-color="#00aaff" style="background:#0077cc; color:#00aaff;">ฟ้า</div>
+            <div class="color-swatch" data-color="#ff3344" style="background:#bb1122; color:#ff3344;">แดง</div>
+            <div class="color-swatch" data-color="#22dd66" style="background:#119944; color:#22dd66;">เขียว</div>
+            <div class="color-swatch" data-color="#bb55ff" style="background:#7722cc; color:#bb55ff;">ม่วง</div>
+            <div class="color-swatch" data-color="#ffbb00" style="background:#cc8800; color:#ffbb00;">ทอง</div>
+          </div>
+        </div>
+
+        <div id="auth-error"></div>
+        <button id="join-btn">⚔ เข้าสู่โลกวิญญาณ (Login &amp; Join)</button>
+        <div style="font-size:10px; color:#557799; margin-top:7px;">
+          * ชื่อใหม่รับฟรี 200 Coins + 1 ตั๋วกาชา | กำจัดฮอลโลว์ครบ 15 ตัวเพื่อเรียก World Boss!
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SHOP / GACHA / INVENTORY / REDEEM MODAL ── -->
+    <div id="shop-modal">
+      <div class="shop-card">
+        <div class="shop-header">
+          <span class="shop-title">⚔ คลังวิญญาณ &amp; ตู้สุ่มศาสตรา (Soul Armory)</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="shop-tickets">🎟 ตั๋วฟรี: <span id="modal-tickets">0</span></span>
+            <span class="shop-coins">🪙 <span id="modal-coins">0</span> Coins</span>
+            <button class="close-shop-btn" id="close-shop-btn">✕ ปิด</button>
+          </div>
+        </div>
+
+        <div class="shop-tabs">
+          <div class="shop-tab active" data-tab="tab-gacha">🎲 สุ่มกาชาดาบ (Gacha)</div>
+          <div class="shop-tab" data-tab="tab-inv">🗡 คลังอาวุธ (Inventory)</div>
+          <div class="shop-tab" data-tab="tab-redeem">🎁 เติมโค้ด (Redeem Code)</div>
+        </div>
+
+        <div class="shop-body">
+          <!-- Tab 1: Gacha -->
+          <div class="tab-pane active" id="tab-gacha">
+            <div class="gacha-banner">
+              <div style="font-size:16px; font-weight:800; color:#ffffff;">✨ ตู้สุ่มศาสตราวิญญาณ (Soul Blade Gacha) ✨</div>
+              <div class="gacha-rates">
+                โอกาสออก: <span style="color:#ccc;">Common 50%</span> ·
+                <span style="color:#33ccff;">Rare 35% (+15% ATK)</span> ·
+                <span style="color:#bb55ff;">Epic 12% (+30% ATK)</span> ·
+                <span style="color:#ffaa00;">Legendary 3% (+50% ATK)</span>
+              </div>
+
+              <div id="gacha-result-box">
+                <span style="font-size:12px; color:#6688aa;">กดปุ่มด้านล่างเพื่ออัญเชิญดาบวิญญาณ! (ใช้ตั๋วฟรีก่อนอัตโนมัติ)</span>
+              </div>
+
+              <button id="roll-gacha-btn">🎲 สุ่มดาบวิญญาณ (100 Soul Coins)</button>
+            </div>
+          </div>
+
+          <!-- Tab 2: Inventory -->
+          <div class="tab-pane" id="tab-inv">
+            <div style="font-size:11px; color:#88aacc; margin-bottom:10px;">
+              เลือกสวมใส่ดาบที่ปลดล็อกแล้ว (สีดาบและเส้นแสง Slash Trail จะเปลี่ยนตามดาบที่ถือ):
+            </div>
+            <div class="inv-grid" id="inventory-grid"></div>
+          </div>
+
+          <!-- Tab 3: Redeem Code -->
+          <div class="tab-pane" id="tab-redeem">
+            <div class="redeem-box">
+              <div style="font-size:15px; font-weight:800; color:#ffd166;">🎁 กรอกโค้ดรับเหรียญวิญญาณฟรี</div>
+              <div style="font-size:11px; color:#88aacc;">
+                โค้ดแนะนำ: <b style="color:#66ffcc;">SOUL2026</b> (+500 Coins) หรือ <b style="color:#ffcc44;">VIP999</b> (+1,000 Coins + 1 ตั๋วกาชา)
+              </div>
+              <div class="redeem-input-row">
+                <input type="text" id="redeem-input" placeholder="กรอกโค้ดที่นี่ เช่น SOUL2026" maxlength="24" />
+                <button id="redeem-btn">รับรางวัล</button>
+              </div>
+              <div id="redeem-msg" style="font-size:12px; font-weight:700; min-height:20px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ONLINE PLAYERS LIST ── -->
+    <div id="online-panel">
+      <div class="online-header">
+        <span>🟢 ONLINE HUNTERS</span>
+        <span id="online-count">1</span>
+      </div>
+      <ul id="online-list"></ul>
+    </div>
+
+    <!-- ── QUICK CHAT ── -->
+    <div id="chat-box">
+      <div id="chat-messages"></div>
+      <div id="chat-input-wrapper">
+        <input type="text" id="chat-input" maxlength="120" placeholder="กด [Enter] เพื่อแชท..." />
+      </div>
+    </div>
+
+    <!-- ── MOBILE VIRTUAL TOUCH CONTROLS ── -->
+    <div id="touch-controls">
+      <div class="touch-cluster-left">
+        <div class="v-btn" data-action="left">◀<span>ซ้าย</span></div>
+        <div class="v-btn" data-action="right">▶<span>ขวา</span></div>
+        <div class="v-btn" data-action="jump" style="margin-left:6px;">▲<span>โดด</span></div>
+      </div>
+      <div class="touch-cluster-right">
+        <div class="v-btn" data-action="dash">⚡<span>พุ่งหลบ</span></div>
+        <div class="v-btn" data-action="wave">🌊<span>คลื่นดาบ</span></div>
+        <div class="v-btn ult" data-action="awaken">🔥<span>ปลุกพลัง</span></div>
+        <div class="v-btn atk" data-action="attack">⚔<span>ฟันดาบ</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Phaser 3 via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <!-- Game Logic -->
+  <script src="game.js"></script>
+</body>
+</html>

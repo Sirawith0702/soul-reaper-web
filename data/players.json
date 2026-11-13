@@ -1,0 +1,30 @@
+{
+  "ichigo": {
+    "username": "Ichigo",
+    "pin": "1234",
+    "level": 2,
+    "exp": 5,
+    "coins": 75,
+    "unlockedSwords": [
+      "steel_blade",
+      "aqua_blade",
+      "gale_blade",
+      "thunder_blade"
+    ],
+    "equippedSword": "thunder_blade",
+    "unlockedAuras": [
+      "#00aaff",
+      "#ff3344",
+      "#22dd66",
+      "#bb55ff",
+      "#ffbb00"
+    ],
+    "equippedAura": "#00aaff",
+    "redeemedCodes": [
+      "SOUL2026",
+      "VIP999"
+    ],
+    "createdAt": "2026-11-13T03:21:08.152Z",
+    "gachaTickets": 0
+  }
+}
